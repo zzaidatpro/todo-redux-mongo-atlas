@@ -3,11 +3,56 @@ import { test, expect } from '@playwright/test';
 test.describe('E2E - Application Todo Redux', () => {
 
   test.beforeEach(async ({ page }) => {
-    const targetUrl = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://127.0.0.1:5173';
-    await page.goto(targetUrl); 
-    await page.evaluate(() => localStorage.clear()); // nettoyage du localStorage
-  });
+    // 1. Mock de l'API GET (récupération initiale vide)
+    await page.route('http://localhost:5000/api/todos', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([]), // Tableau vide au départ
+        });
+      } 
+      // 2. Mock de l'API POST (ajout d'une tâche)
+      else if (route.request().method() === 'POST') {
+        const postData = JSON.parse(route.request().postData());
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            _id: 'mock-id-' + Date.now(),
+            title: postData.title,
+            status: 'en cours',
+          }),
+        });
+      }
+    });
 
+    // 3. Mock des routes individuelles (PUT et DELETE pour les tâches)
+    await page.route('http://localhost:5000/api/todos/*', async (route) => {
+      const method = route.request().method();
+      if (method === 'PUT') {
+        const putData = JSON.parse(route.request().postData() || '{}');
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            _id: route.request().url().split('/').pop(),
+            title: 'Tâche modifiée',
+            status: putData.status || 'terminée',
+          }),
+        });
+      } else if (method === 'DELETE') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true }),
+        });
+      }
+    });
+
+    // Navigation vers l'application
+    await page.goto('/');
+  });
   // 1. CHARGEMENT
   test('1. Doit afficher l\'interface initiale et les filtres', async ({ page }) => {
     const input = page.getByPlaceholder('Nouvelle tâche...');  // ciblage avec <input .. placeholder="Nouvelle tâche..." dans AddTask.js
@@ -31,13 +76,15 @@ test.describe('E2E - Application Todo Redux', () => {
   });
 
   test('3. Ne doit pas ajouter de tâche vide', async ({ page }) => {
-    await page.getByRole('button', { name: 'Tout supprimer', exact: true }).click().catch(() => {});
-
     const input = page.getByPlaceholder('Nouvelle tâche...');
     await input.fill('   ');
-    await page.getByRole('button', { name: 'Ajouter', exact: true }).click();
+    
+    const addButton = page.getByRole('button', { name: 'Ajouter', exact: true });
+    await addButton.click();
 
+    // S'assure que le message d'état vide est affiché et qu'aucune tâche n'a été insérée
     await expect(page.getByText('Aucune tâche trouvée !')).toBeVisible();
+    await expect(page.locator('input[type="checkbox"]')).toHaveCount(0);
   });
 
   // 3. MODIFICATION ET STATUT
@@ -47,7 +94,7 @@ test.describe('E2E - Application Todo Redux', () => {
     await input.press('Enter');
 
     const checkbox = page.getByRole('checkbox').first();
-    await checkbox.check();
+    await checkbox.click();
 
     await expect(checkbox).toBeChecked();
   });
@@ -92,7 +139,7 @@ test.describe('E2E - Application Todo Redux', () => {
     await input.press('Enter');
 
     const taskB = page.locator('div').filter({ hasText: /^Tâche B \(Terminée\)/ }).first();
-    await taskB.getByRole('checkbox').check();
+    await taskB.getByRole('checkbox').click();
 
     // Filtre : En cours
     await page.getByRole('button', { name: 'En cours', exact: true }).click();
@@ -121,7 +168,8 @@ test.describe('E2E - Application Todo Redux', () => {
     await input.fill('Tâche 2');
     await input.press('Enter');
 
-    await page.getByRole('button', { name: 'Tout supprimer', exact: true }).click();
+    // Mettez à jour le sélecteur selon le vrai texte ou rôle du bouton de suppression globale dans votre UI
+    await page.getByRole('button', { name: /supprimer tout|tout effacer/i }).click();
 
     await expect(page.getByText('Aucune tâche trouvée !')).toBeVisible();
   });

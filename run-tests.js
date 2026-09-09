@@ -5,9 +5,9 @@ const testType = process.argv[2] || 'all';
 function runCommand(command) {
   try {
     execSync(command, { stdio: 'inherit' });
-  } catch (error) {
-    console.error(`\n❌ Échec de la commande : ${command}`);
-    process.exit(1); // Arrête l'exécution si une étape échoue
+  } catch {
+    console.error(`\nÉchec de la commande : ${command}`);
+    process.exit(1);
   }
 }
 
