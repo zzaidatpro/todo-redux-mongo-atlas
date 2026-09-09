@@ -11,7 +11,7 @@ export const fetchTasks = createAsyncThunk('tasks/fetchTasks', async () => {
 export const addTask = createAsyncThunk('tasks/addTask', async (taskData) => {
   // Si taskData est juste une chaîne de caractères ou un objet partiel, on complète proprement
   const basePayload = typeof taskData === 'string' ? { title: taskData } : taskData;
-
+  console.log("DONNÉES REÇUES DANS LE THUNK :", basePayload);
   const payload = {
     title: basePayload.title,
     status: basePayload.status || 'en cours',
@@ -22,7 +22,7 @@ export const addTask = createAsyncThunk('tasks/addTask', async (taskData) => {
       unit: basePayload.duration?.unit || 'jours'
     },
     dueDate: basePayload.dueDate || new Date(),
-    createdAt: basePayload.createdAt || new Date()
+    
   };
 
   const response = await fetch(API_URL, {

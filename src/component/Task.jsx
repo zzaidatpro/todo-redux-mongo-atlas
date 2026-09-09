@@ -26,7 +26,7 @@ export function Task({ task }) {
   };
 
   const handleCancel = () => {
-    setNewText(task.title || '');
+    setNewText(task.title);
     setIsEditing(false);
   };
 

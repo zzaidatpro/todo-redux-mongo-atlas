@@ -5,9 +5,9 @@ import { addTask } from '../redux/taskSlice';
 export function AddTask() {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Perso');
-  const [responsible, setResponsible] = useState('moi-meme');
+  const [responsible, setResponsible] = useState('');
   const [durationValue, setDurationValue] = useState(1);
-  const [durationUnit, setDurationUnit] = useState('Jours');
+  const [durationUnit, setDurationUnit] = useState('jours');
   const dispatch = useDispatch();
 
   const handleSubmit = (e) => {
@@ -16,19 +16,18 @@ export function AddTask() {
     if (title.trim() !== '') {
       dispatch(addTask({
         title : title.trim(),
-        status : 'en cours',
-        category : category || 'Zoheir',
-        responsible : responsible.trim() || '',
-        duration: { 
-        value: Number(durationValue) || 1, unit: durationUnit },
-        dueDate: new Date(),
-        createdAt: new Date()
+        category : category,
+        responsible : responsible,
+       duration: {
+        value: Number(durationValue), // <--- Envoie la valeur de durée saisie
+        unit: durationUnit            // <--- Envoie l'unité (jours ou heures)
+      }
       }));
       setTitle('');
       setResponsible('');
-      setCategory('');
-      setDurationValue(1);
-      setDurationUnit('jours');
+      
+     setDurationValue(1);
+     setDurationUnit('jours');
     }
   };
 
@@ -84,6 +83,7 @@ export function AddTask() {
             <option value="heures">heures</option>
             <option value="jours">jours</option>
           </select>
+
         </div>
       </div>
 
