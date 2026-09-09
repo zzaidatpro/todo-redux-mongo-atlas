@@ -19,10 +19,16 @@ function createMockApi() {
     }
 
     if (method === 'POST' && url.pathname.endsWith('/api/todos')) {
-      const { title } = JSON.parse(route.request().postData());
+      // Récupération de toutes les nouvelles données envoyées par le formulaire
+      const { title, category, responsible, duration, dueDate, createdAt } = JSON.parse(route.request().postData());
       const task = {
         _id: `mock-id-${++idCounter}`,
         title,
+        category: category || 'Perso',
+        responsible: responsible || '',
+        duration: duration || { value: 1, unit: 'jours' },
+        dueDate: dueDate || new Date(),
+        createdAt: createdAt || new Date(),
         status: 'en cours',
       };
       tasks.set(task._id, task);
@@ -81,7 +87,8 @@ test.describe('E2E - Application Todo Redux', () => {
   test('2. Doit ajouter une tâche et réinitialiser l\'input', async ({ page }) => {
     const input = page.getByPlaceholder('Nouvelle tâche...');
     await input.fill('Test Integration - Unitaire - E2E');
-    await page.getByRole('button', { name: 'Ajouter', exact: true }).click();
+    // Le texte du bouton est devenu "Ajouter la tâche"
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
 
     await expect(page.getByText('Test Integration - Unitaire - E2E')).toBeVisible();
     await expect(input).toHaveValue('');
@@ -90,7 +97,7 @@ test.describe('E2E - Application Todo Redux', () => {
   test('3. Ne doit pas ajouter de tâche vide', async ({ page }) => {
     const input = page.getByPlaceholder('Nouvelle tâche...');
     await input.fill('   ');
-    await page.getByRole('button', { name: 'Ajouter', exact: true }).click();
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
 
     await expect(page.getByText('Aucune tâche trouvée !')).toBeVisible();
     await expect(page.locator('input[type="checkbox"]')).toHaveCount(0);
@@ -99,7 +106,9 @@ test.describe('E2E - Application Todo Redux', () => {
   test('4. Doit marquer une tâche comme terminée', async ({ page }) => {
     const input = page.getByPlaceholder('Nouvelle tâche...');
     await input.fill('Tâche à cocher');
-    await input.press('Enter');
+    // Si on fait press('Enter') sur l'input, cela soumet le formulaire s'il y a un gestionnaire, 
+    // mais le clic sur le bouton "Ajouter la tâche" est plus sûr vu la structure.
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
 
     const checkbox = page.getByRole('checkbox').first();
     await checkbox.click();
@@ -110,7 +119,7 @@ test.describe('E2E - Application Todo Redux', () => {
   test('5. Doit éditer le texte d\'une tâche existante', async ({ page }) => {
     const input = page.getByPlaceholder('Nouvelle tâche...');
     await input.fill('Ancien texte');
-    await input.press('Enter');
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
 
     const taskCard = page.locator('div').filter({ hasText: /^Ancien texte/ }).first();
     await taskCard.getByRole('button', { name: 'Modifier', exact: true }).click();
@@ -126,7 +135,7 @@ test.describe('E2E - Application Todo Redux', () => {
   test('6. Doit supprimer une tâche spécifique', async ({ page }) => {
     const input = page.getByPlaceholder('Nouvelle tâche...');
     await input.fill('Tâche à supprimer');
-    await input.press('Enter');
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
 
     const taskCard = page.locator('div').filter({ hasText: /^Tâche à supprimer/ }).first();
     await taskCard.getByRole('button', { name: 'Supprimer', exact: true }).click();
@@ -138,9 +147,10 @@ test.describe('E2E - Application Todo Redux', () => {
     const input = page.getByPlaceholder('Nouvelle tâche...');
 
     await input.fill('Tâche A (En cours)');
-    await input.press('Enter');
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
+
     await input.fill('Tâche B (Terminée)');
-    await input.press('Enter');
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
 
     const taskB = page.locator('div').filter({ hasText: /^Tâche B \(Terminée\)/ }).first();
     await taskB.getByRole('checkbox').click();
@@ -161,7 +171,7 @@ test.describe('E2E - Application Todo Redux', () => {
   test('8. Doit conserver les tâches après rechargement de page (F5)', async ({ page }) => {
     const input = page.getByPlaceholder('Nouvelle tâche...');
     await input.fill('Tâche persistante');
-    await input.press('Enter');
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
 
     await expect(page.getByText('Tâche persistante')).toBeVisible();
     await page.reload();
@@ -171,9 +181,10 @@ test.describe('E2E - Application Todo Redux', () => {
   test('9. Doit supprimer plusieurs tâches une par une', async ({ page }) => {
     const input = page.getByPlaceholder('Nouvelle tâche...');
     await input.fill('Tâche 1');
-    await input.press('Enter');
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
+
     await input.fill('Tâche 2');
-    await input.press('Enter');
+    await page.getByRole('button', { name: 'Ajouter la tâche', exact: true }).click();
 
     await page.getByRole('button', { name: 'Supprimer', exact: true }).first().click();
     await page.getByRole('button', { name: 'Supprimer', exact: true }).first().click();

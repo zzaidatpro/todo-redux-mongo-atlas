@@ -9,14 +9,34 @@ export const fetchTasks = createAsyncThunk('tasks/fetchTasks', async () => {
 });
 
 export const addTask = createAsyncThunk('tasks/addTask', async (taskData) => {
-  const payload = typeof taskData === 'string' ? { title: taskData } : taskData;
+  // Si taskData est juste une chaîne de caractères ou un objet partiel, on complète proprement
+  const basePayload = typeof taskData === 'string' ? { title: taskData } : taskData;
+
+  const payload = {
+    title: basePayload.title,
+    status: basePayload.status || 'en cours',
+    category: basePayload.category || 'Perso',
+    responsible: basePayload.responsible || '',
+    duration: {
+      value: basePayload.duration?.value || 1,
+      unit: basePayload.duration?.unit || 'jours'
+    },
+    dueDate: basePayload.dueDate || new Date(),
+    createdAt: basePayload.createdAt || new Date()
+  };
 
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!response.ok) throw new Error("Erreur lors de l'ajout de la tâche");
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error("Détail de l'erreur backend :", errorData);
+    throw new Error("Erreur lors de l'ajout de la tâche");
+  }
+  
   return await response.json();
 });
 
