@@ -12,7 +12,8 @@
     "test:unit": "node run-tests.js unit",
     "test:integration": "node run-tests.js integration",
     "test:e2e": "node run-tests.js e2e",
-    "test:all": "node run-tests.js all"
+    "test:all": "node run-tests.js all",
+    "postinstall": "playwright install chromium"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
